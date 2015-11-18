@@ -1,5 +1,9 @@
 from __future__ import unicode_literals
-from django.core.cache import get_cache
+
+try:
+    from django.core.cache import get_cache
+except ImportError:
+    from django.core.cache import caches as get_cache
 
 
 class NoCache(object):
