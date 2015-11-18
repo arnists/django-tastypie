@@ -8,7 +8,10 @@ from django.conf import settings
 from django.contrib.auth import authenticate
 from django.core.exceptions import ImproperlyConfigured
 from django.middleware.csrf import _sanitize_token, constant_time_compare
-from django.utils.http import same_origin
+try:
+    from django.utils.http import same_origin
+except ImportError:
+    from django.utils.http import is_same_domain as same_origin
 from django.utils.translation import ugettext as _
 from tastypie.http import HttpUnauthorized
 from tastypie.compat import get_user_model, get_username_field
@@ -191,7 +194,7 @@ class ApiKeyAuthentication(Authentication):
 
         try:
             lookup_kwargs = {username_field: username}
-            user = User.objects.select_related('api_key').get(**lookup_kwargs)
+            user = User.objects.get(**lookup_kwargs)
         except (User.DoesNotExist, User.MultipleObjectsReturned):
             return self._unauthorized()
 
@@ -212,8 +215,7 @@ class ApiKeyAuthentication(Authentication):
         from tastypie.models import ApiKey
 
         try:
-            if user.api_key.key != api_key:
-                return self._unauthorized()
+            ApiKey.objects.get(user=user, key=api_key)
         except ApiKey.DoesNotExist:
             return self._unauthorized()
 
@@ -333,7 +335,7 @@ class DigestAuthentication(Authentication):
             return self._unauthorized()
 
         try:
-            auth_type, data = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
+            (auth_type, data) = request.META['HTTP_AUTHORIZATION'].split(' ', 1)
 
             if auth_type.lower() != 'digest':
                 return self._unauthorized()
@@ -426,7 +428,7 @@ class OAuthAuthentication(Authentication):
             raise ImproperlyConfigured("The 'django-oauth-plus' package could not be imported. It is required for use with the 'OAuthAuthentication' class.")
 
     def is_authenticated(self, request, **kwargs):
-        from oauth_provider.store import store
+        from oauth_provider.store import store, InvalidTokenError
 
         if self.is_valid_request(request):
             oauth_request = oauth_provider.utils.get_oauth_request(request)
