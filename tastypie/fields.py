@@ -11,7 +11,10 @@ except ImportError:
     from django.utils import importlib
 
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
-from django.db.models.fields.related import SingleRelatedObjectDescriptor
+try:
+    from django.db.models.fields.related import SingleRelatedObjectDescriptor
+except ImportError:
+    from django.db.models.fields.related import ReverseOneToOneDescriptor as SingleRelatedObjectDescriptor
 from django.utils import datetime_safe
 from django.utils import six
 
